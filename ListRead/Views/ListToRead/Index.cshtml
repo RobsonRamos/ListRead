@@ -1,0 +1,42 @@
+﻿<div class="hero-unit">
+    <header>
+        <h1>Reading List</h1>
+        <p class="lead">This is a sample application using BackboneJS, WebApi, JQuey and other cool tecnologies!</p>
+    </header>
+</div>
+<div class="row">
+    <input type="button" id="Add" value="+ Add Book" />
+
+    <div id="BookEdit">
+        <fieldset>
+            <div id="formEdit">
+                <label for="txtTittle">Title</label>
+                <input type="text" id="txtTitle" placeholder="Digit the title" />
+
+                <label for="txtTittle">Author</label>
+                <input type="text" id="txtAuthor" placeholder="Digit the Author" />
+
+                <label for="txtTittle">Category</label>
+                <input type="text" id="txtCategory" placeholder="Digit the category" />
+
+                <label for="txtTittle">Priority</label>
+                <input type="number" id="txtPriority" min="0" max="999" placeholder="Set the Priority" />
+
+                <label for="txtTittle">Complete?</label>
+                <input type="checkbox" id="status">
+            </div>
+            <input type="button" id="btnSave" value="Save" />
+            <input type="button" id="btnDelete" value="Delete" />
+            <input type="button" id="btnCancel" value="Cancel" />
+        </fieldset>
+    </div>
+    <div class="span12" id="BookList">
+        <h2>This is your reading list:</h2>
+        <input type="hidden" id="bookId" />
+        <div id="readingList"></div>
+    </div>
+    <div id="loading">
+        <input type="image" src="@Url.Content("~/img/ajax-loader.gif")" />
+    </div>
+
+</div>
