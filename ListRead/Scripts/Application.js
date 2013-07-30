@@ -39,7 +39,7 @@
 
     var BookItem = Backbone.Model.extend(
     {
-        urlRoot: 'http://localhost:2821/api/Book',
+        urlRoot: '/api/Book',
         initialize: function () {
             this.on('error', this.printError, this);
         },
@@ -132,7 +132,7 @@
 
     var BookList = Backbone.Collection.extend({
         model: BookItem,
-        url: 'http://localhost:2821/api/Book',
+        url: '/api/Book',
         initialize: function () {
             this.on('error', this.printError, this);
         },
