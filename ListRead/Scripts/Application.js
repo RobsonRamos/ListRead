@@ -4,10 +4,10 @@
         $('#BookEdit').slideToggle();
     }
 
-    function initializeDivs() {
+    function initializeDivs() {        
         $('#BookEdit').slideUp();
-        $('#loading').fadeIn();
-        $('#BookList').slideDown(loadReadingList);
+        $('#loading').fadeOut();
+        $('#BookList').slideDown();
     }
 
     function clearFields() {
@@ -16,28 +16,82 @@
         $('#txtAuthor').val('');
         $('#txtCategory').val('');
         $('#txtPriority').val('');
+        $('#readingList').html('');
     }
 
-    function editBook(bookId) {
+    $('#Add').click(function () {
 
-        var book = new BookItem();
+        App.router.navigate("book", { trigger: true });
+    });
 
-        book.set({ id: bookId });
-        $('#bookId').val(bookId);
-        var bookView = new BookEditView({ model: book });
+    $('#btnSave').click(function () {
 
-        book.fetch({
+        var book = new App.Models.BookItem();
+
+        if ($('#bookId').val() != "") {
+            book.set({ id: parseInt($('#bookId').val()) });
+        }
+        book.set({ Title: $('#txtTitle').val() });
+        book.set({ Author: $('#txtAuthor').val() });
+        book.set({ Category: $('#txtCategory').val() });
+        book.set({ Priority: $('#txtPriority').val() });
+
+        if ($('#status').attr('checked')) {
+            book.set({ Status: "Complete" });
+        }
+        else {
+            book.set({ Status: "Incomplete" });
+        }
+
+        book.save({}, {
             success: function () {
-                toggleDivs();
-            },
-            error: function (model, response) {
-                alert(response);
+                App.router.navigate("", { trigger: true });                
             }
         });
+    });
 
-    };    
+    $('#btnDelete').click(function () {
 
-    var BookItem = Backbone.Model.extend(
+        var book = new App.Models.BookItem();
+        book.set({ id: parseInt($('#bookId').val()) });
+        book.destroy({
+            success: function () {
+                App.router.navigate("", { trigger: true });
+            },
+            error: function (model, error) {
+                alert(error);
+            }
+        });
+    });
+
+    $('#btnCancel').click(function () { 
+        App.router.navigate("", { trigger: true });
+    });
+
+    var App =
+    {
+        Models: {},
+        Views: {},
+        Collections: {},
+        Router: {},
+        events: {
+            'click a': function (e) {
+                e.preventDefault();
+                Backbone.history.navigate(e.target.pathname, { trigger: true });
+            }
+        },
+        start: function () {            
+            App.Collections.books = new App.Collections.BookList();
+            App.Collections.bookListView = new App.Views.BookListView({ collection: App.Collections.books });
+            App.router = new App.Router();
+
+            this.router.navigate("", { trigger: true });
+            Backbone.history.start({ pushState: true });
+
+        }
+    };
+
+    App.Models.BookItem = Backbone.Model.extend(
     {
         urlRoot: '/api/Book',
         initialize: function () {
@@ -65,7 +119,7 @@
         }
     });
 
-    var BookEditView = Backbone.View.extend({
+    App.Views.BookEditView = Backbone.View.extend({
         events:
         {
             'change #status': 'toggleStatus'
@@ -101,12 +155,12 @@
         }
     });
 
-    var BookView = Backbone.View.extend({
+    App.Views.BookView = Backbone.View.extend({
         className: 'listBooks',
         events:
         {
-            "click h3": "searchBook",
-            "click button": "searchBook"
+            "click h3": "editBook",
+            "click button": "editBook"
         },
         initialize: function () {
             this.model.on('change', this.render, this);
@@ -125,14 +179,21 @@
                 '<p><input type="button" value="Delete" class="invisible" /></p>';
             this.$el.append(html);
         },
-        searchBook: function () {            
-            BookApp.navigate("book/" + this.model.toJSON().Id, { trigger: true });
+        editBook: function () {            
+            App.router.navigate("book/" + this.model.toJSON().Id, { trigger: true });
         }
     });
 
-    var BookList = Backbone.Collection.extend({
-        model: BookItem,
+    App.Collections.BookList = Backbone.Collection.extend({
+        model: App.Models.BookItem,
         url: '/api/Book',
+        comparator: 'Priority',
+        completedRead: function () {
+            return this.where({ status: 'Complete' }).length;
+        },
+        incompletedRead: function () {
+            return this.where({ status: 'Incomplete' }).length;
+        },
         initialize: function () {
             this.on('error', this.printError, this);
         },
@@ -142,7 +203,8 @@
         }
     });
 
-    var BookListView = Backbone.View.extend({
+    App.Views.BookListView = Backbone.View.extend({
+        el: $('#readingList'),
         render: function () {
             this.collection.forEach(this.addBook, this)
         },
@@ -153,120 +215,56 @@
             //this.on('remove', this.render)
         },
         addBook: function (bookItem) {
-            var bookView = new BookView({ model: bookItem });
+            var bookView = new App.Views.BookView({ model: bookItem });
             bookView.render();
             this.$el.append(bookView.el);
 
         },
         addAll: function () {
-
-            $('#readingList').html('');
             this.render();
-
-            $('#readingList').html(this.el);
         }
     });
 
-    var BookRouter = Backbone.Router.extend({
+    App.Router = Backbone.Router.extend({
         routes: {
             "": "index",
-            "book/:id": "show",
-            "book": "newBook"
+            "book/:id": "editBook",
+            "book": "newBook",
+            '*path': 'notFound'
         },
-        start: function ()
-        {
-            Backbone.history.start({ pushState: true });            
-        },
-        initialize: function (options) {
-            this.bookList = options.bookList;
-        },
-        show: function (id) {
-            editBook(id);
+        editBook: function (id) {
+            var book = new App.Models.BookItem();
+            book.set({ id: id });
+            $('#bookId').val(id);
+            var bookView = new App.Views.BookEditView({ model: book });
+            book.fetch({
+                success: function () {
+                    toggleDivs();
+                },
+                error: function (model, response) {
+                    alert(response);
+                }
+            });
         },
         index: function () {
-            initializeDivs();            
+            
+            App.Collections.books.fetch({
+                success: function ()
+                {
+                    initializeDivs();
+                    clearFields();
+                }
+            });
         },
-        newBook: function ()
-        {            
+        newBook: function () {
             toggleDivs();
             clearFields();
+        },
+        notfound: function (path) {
+            alert('Sorry! There is no content here.');
         }
     });
 
-    function loadReadingList() {
+    App.start();
 
-        bookList.fetch({
-            success: function () {
-                $('#loading').fadeOut();
-            },
-            error: function (error)
-            {
-                alert(error);
-            }
-        });
-    }
-
-    $('#Add').click(function () {
-        BookApp.navigate("book", { trigger: true });        
-    });
-
-    $('#btnSave').click(function () {
-
-        var book = new BookItem();
-
-        if ($('#bookId').val() != "") {
-            book.set({ id: parseInt($('#bookId').val()) });
-        }
-        book.set({ Title: $('#txtTitle').val() });
-        book.set({ Author: $('#txtAuthor').val() });
-        book.set({ Category: $('#txtCategory').val() });
-        book.set({ Priority: $('#txtPriority').val() });
-
-        if ($('#status').attr('checked')) {
-            book.set({ Status: "Complete" });
-        }
-        else {
-            book.set({ Status: "Incomplete" });
-        }
-
-        book.save({}, {
-            success: function () {
-
-                bookList.fetch();
-                clearFields();
-                toggleDivs();
-                BookApp.navigate("", { trigger: true });
-            }
-        });
-    });
-
-    $('#btnDelete').click(function () {
-
-        var book = new BookItem();
-        book.set({ id: parseInt($('#bookId').val()) });
-        book.destroy({
-            success: function () {
-                toggleDivs();
-                bookList.fetch();
-                clearFields();
-                BookApp.navigate("", { trigger: true });
-            },
-            error: function (model, error) {
-                alert(error);
-            }
-        });
-    });
-
-    $('#btnCancel').click(function () {
-        toggleDivs();
-        clearFields();
-        BookApp.navigate("", { trigger: true });
-    });
-    
-    var bookList = new BookList();
-    var bookListView = new BookListView({ collection: bookList });
-    var BookApp = new BookRouter({ bookList: bookList });
-    BookApp.start();
-        
-    
 });

@@ -49,7 +49,10 @@ namespace ListRead.Controllers
             int lastPriority = repository.GetNextPriority();
             if (!item.Priority.HasValue || item.Priority == 0 || item.Priority > lastPriority)
             {
-                return lastPriority;
+                if (item.Id != 0)
+                {
+                    return lastPriority - 1;
+                }                
             }            
             return item.Priority.Value;
         }
